@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ESP32 Bluetooth OTA Updater</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    button { padding: 10px 16px; margin: 5px; cursor: pointer; }
+    #update-popup {
+      display: none;
+      position: fixed;
+      top: 20%; left: 50%;
+      transform: translate(-50%, -20%);
+      background: white;
+      border: 2px solid #444;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 400px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <h1>ESP32 Bluetooth OTA Updater</h1>
+  <button id="connect-btn">🔗 Connect to ESP32</button>
+
+  <div id="update-popup">
+    <h2>Update Available</h2>
+    <p>New version: <span id="version"></span></p>
+    <pre id="changelog"></pre>
+    <button id="update-btn">⬆️ Update Now</button>
+  </div>
+
+  <script>
+    // ✅ GitHub Repo Info
+    const repoOwner = "Jake-Lofthouse";
+    const repoName = "ALD-OTA-Update";
+
+    let device, server, txChar;
+
+    async function connectESP32() {
+      try {
+        device = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: "ESP32" }],
+          optionalServices: [0xABF0] // Custom OTA Service UUID
+        });
+
+        server = await device.gatt.connect();
+        const service = await server.getPrimaryService(0xABF0);
+        txChar = await service.getCharacteristic(0xABF1);
+
+        alert("✅ Connected to ESP32!");
+        checkForUpdate();
+      } catch (err) {
+        alert("❌ Bluetooth connection failed: " + err);
+      }
+    }
+
+    async function checkForUpdate() {
+      const res = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`);
+      const release = await res.json();
+
+      const latestVersion = release.tag_name;
+      const changelog = release.body;
+      const firmwareUrl = release.assets[0]?.browser_download_url;
+
+      // ⚠️ Right now we fake ESP32 version as "v1.0.0"
+      const currentVersion = "v1.0.0";
+
+      if (currentVersion !== latestVersion) {
+        document.getElementById("update-popup").style.display = "block";
+        document.getElementById("version").innerText = latestVersion;
+        document.getElementById("changelog").innerText = changelog;
+
+        document.getElementById("update-btn").onclick = async () => {
+          if (!firmwareUrl) {
+            alert("❌ No firmware asset found in release!");
+            return;
+          }
+
+          const fwBin = await fetch(firmwareUrl).then(r => r.arrayBuffer());
+          const chunkSize = 512;
+
+          for (let i = 0; i < fwBin.byteLength; i += chunkSize) {
+            let chunk = fwBin.slice(i, i + chunkSize);
+            await txChar.writeValue(new Uint8Array(chunk));
+          }
+
+          alert("✅ Update sent! ESP32 should reboot.");
+          document.getElementById("update-popup").style.display = "none";
+        };
+      } else {
+        alert("👍 ESP32 is already up-to-date (" + currentVersion + ")");
+      }
+    }
+
+    document.getElementById("connect-btn").onclick = connectESP32;
+  </script>
+</body>
+</html>
