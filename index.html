@@ -3,14 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <title>Firmware Update</title>
-    <script type="module" src="https://unpkg.com/esp-web-tools@8.1.1/dist/web/install-button.js"></script>
   </head>
   <body>
-    <h1>ESP Web Tools Uploader</h1>
-    <p>Click below to flash your ESP device:</p>
-    
-    <esp-web-install-button 
-      manifest="manifest.json">
-    </esp-web-install-button>
+ <div id="container">
+        <div id="rounded-box-container">
+            <div id="rounded-box">
+                <div id="logo">
+                    <img src="logo.png" alt="Logo"> <!-- Update the logo source here -->
+                </div>
+                <h1>Prusa Cam Installer</h1>
+                <div id="main">
+                    <script
+  type="module"
+  src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"
+></script>
+                    <esp-web-install-button id="installButton" manifest="webflash/manifest.json"></esp-web-install-button>
+                    <br>
+                    <br>
+                    <span id="noteSpan">NOTE: Make sure to close anything using your device's com port (e.g. Serial monitor)</span>
+                </div>
+                <div class="powered-by" onclick="window.open('https://esphome.github.io/esp-web-tools/', '_blank')">Powered by ESP Web Tools</div>
+            </div>
+        </div>
   </body>
 </html>
